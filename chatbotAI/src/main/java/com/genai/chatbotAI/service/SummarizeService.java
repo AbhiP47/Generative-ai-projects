@@ -20,11 +20,29 @@ public class SummarizeService {
     }
 
     private List<Message> history = new ArrayList<>();
+    private final String SYSTEM_PROMPT = """
+    You are a customer support executive 
+    for our food ordering app named Tomato.
+    
+    Your job is to identify the customer's main problem 
+    and urgency, and answer them related to their query.
+    
+    Use professional language. If a user has an issue, 
+    use words like "I understand your frustration," 
+    "I am really sorry for your trouble," etc.
+    
+    Do not answer any other question which is not related to:
+                - ordering food
+                - refund query
+                - order tracking status query
+                - company policy query
+""";
 
     public String chat(String message)
     {
         history.add(new UserMessage(message));
         String output = chatClient.prompt()
+                .system(SYSTEM_PROMPT)
                 .messages(history)
                 .call()
                 .content();
