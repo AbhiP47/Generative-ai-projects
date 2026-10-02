@@ -1,6 +1,7 @@
 package com.genai.projectAIAgent.controller;
 
-import com.genai.chatbotAI.service.SummarizeService;
+
+import com.genai.projectAIAgent.service.ChatService;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,15 +12,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class ChatController {
 
-    private SummarizeService summarizeService;
+    private ChatService chatService;
 
-    public ChatController(SummarizeService summarizeService) {
-        this.summarizeService = summarizeService;
+    public ChatController(ChatService chatService) {
+        this.chatService = chatService;
     }
 
     @PostMapping("/chat")
     public String chat(@RequestBody String message)
     {
-        return summarizeService.chat(message);
+        return chatService.chat(message);
     }
 }
