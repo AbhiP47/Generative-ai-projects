@@ -1,110 +1,62 @@
 package com.genai.projectAIAgent.service;
 
-import org.springframework.ai.tool.annotation.Tool;
-import org.springframework.ai.tool.annotation.ToolParam;
-import org.springframework.stereotype.Component;
+import com.genai.projectAIAgent.aiTools.WebsiteTools;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 
-@Component
-public class WebsiteTools {
+@Service
+public class WebsiteBuilderService {
+    private final ChatClient chatClient;
+    private WebsiteTools websiteTools;
 
-    private final Path workspace =
-            Path.of("generated-sites").toAbsolutePath().normalize();
+    private final List<Message> history = new ArrayList<>();
 
-    public WebsiteTools() {
-        try {
-            Files.createDirectories(workspace);
-        } catch (IOException e) {
-            throw new IllegalStateException("Could not create website workspace", e);
-        }
+    public WebsiteBuilderService(ChatClient.Builder builder,
+                                 WebsiteTools websiteTools) {
+        this.chatClient = builder.build();
+        this.websiteTools = websiteTools;
     }
 
-    @Tool(description = "Creates a new directory inside" +
-            " the website workspace.")
-    public String createDirectory(
-            @ToolParam(description = "Relative directory " +
-                    "path, for example brewlab") String path) {
+    private static final String SYSTEM_PROMPT = """
+            You are an expert frontend website developer.
 
-        try {
-            Path directory = safePath(path);
-            Files.createDirectories(directory);
-            return "Directory created successfully: " + path;
-        } catch (IOException e) {
-            return "Failed to create directory: " + e.getMessage();
-        }
-    }
+            Your job is to create complete static websites using the available tools.
 
-    @Tool(description = """
-            Creates or overwrites a text file inside the website workspace.
-            Use this to create HTML, CSS and JavaScript files.
-            """)
-    public String writeFile(
-            @ToolParam(description = "Relative file path, for example " +
-                    "brewlab/index.html") String path,
-            @ToolParam(description = "Complete content that should be " +
-                    "written into the file") String content) {
+            Follow these rules:
+            1. Create a separate directory for every website.
+            2. Create index.html.
+            3. Create style.css.
+            4. Create script.js when JavaScript is useful.
+            5. Build modern, beautiful and responsive websites.
+            6. Use only HTML, CSS and vanilla JavaScript.
+            7. Do not just return website code in your response. Actually create the files using tools.
+            8. After creating the website, list the project files.
+            9. Read important files again if needed and fix obvious problems.
+            10. Finish only when the complete website has been created.
+            """;
 
-        try {
-            Path file = safePath(path);
-            Files.createDirectories(file.getParent());
-            Files.writeString(file, content, StandardCharsets.UTF_8);
-            return "File written successfully: " + path;
-        } catch (IOException e) {
-            return "Failed to write file: " + e.getMessage();
-        }
-    }
+    public String generate(String message) {
 
-    @Tool(
-            description = "Reads the contents of an existing file from" +
-                    " the website workspace.")
-    public String readFile(
-            @ToolParam(description = "Relative file path") String path) {
+        // USER role
+        history.add(new UserMessage(message));
 
-        try {
-            return Files.readString(safePath(path), StandardCharsets.UTF_8);
-        } catch (IOException e) {
-            return "Failed to read file: " + e.getMessage();
-        }
-    }
+        // SYSTEM + Conversation History
+        String response = chatClient.prompt()
+                .system(SYSTEM_PROMPT)
+                .messages(history)
+                .tools(websiteTools)
+                .call()
+                .content();
 
-    @Tool(description = "Lists all files and directories inside" +
-            " a website project.")
-    public String listFiles(
-            @ToolParam(description = "Relative directory path, " +
-                    "for example brewlab") String path) {
+        // ASSISTANT role
+        history.add(new AssistantMessage(response));
 
-        try {
-            Path directory = safePath(path);
-
-            if (!Files.exists(directory)) {
-                return "Directory does not exist: " + path;
-            }
-
-            try (var files = Files.walk(directory)) {
-                return files
-                        .filter(file -> !file.equals(directory))
-                        .map(workspace::relativize)
-                        .map(Path::toString)
-                        .collect(Collectors.joining("\n"));
-            }
-        } catch (IOException e) {
-            return "Failed to list files: " + e.getMessage();
-        }
-    }
-
-    private Path safePath(String path) {
-        Path resolved = workspace.resolve(path).normalize();
-
-        if (!resolved.startsWith(workspace)) {
-            throw new IllegalArgumentException("Access outside generated-sites " +
-                    "is not allowed");
-        }
-
-        return resolved;
+        return response;
     }
 }
