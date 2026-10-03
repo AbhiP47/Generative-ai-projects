@@ -1,6 +1,7 @@
 package com.genai.projectAIAgent.service;
 
 import com.genai.projectAIAgent.aiTools.CalculatorTool;
+import com.genai.projectAIAgent.aiTools.CurrencyExchangeTool;
 import com.genai.projectAIAgent.aiTools.WeatherTool;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -17,12 +18,14 @@ public class ChatService {
     private final ChatClient chatClient;
     private final CalculatorTool calculatorTool;
     private final WeatherTool weatherTool;
+    private final CurrencyExchangeTool currencyExchangeTool;
 
-    public ChatService(ChatClient.Builder builder, CalculatorTool calculatorTool, WeatherTool weatherTool)
+    public ChatService(ChatClient.Builder builder, CalculatorTool calculatorTool, WeatherTool weatherTool, CurrencyExchangeTool currencyExchangeTool)
     {
         this.chatClient = builder.build();
         this.calculatorTool = calculatorTool;
         this.weatherTool = weatherTool;
+        this.currencyExchangeTool = currencyExchangeTool;
     }
 
     private List<Message> history = new ArrayList<>();
@@ -48,7 +51,7 @@ public class ChatService {
         String response = chatClient.prompt()
                 .system(SYSTEM_PROMPT)
                 .messages(history)
-                .tools(calculatorTool,weatherTool)
+                .tools(calculatorTool,weatherTool,currencyExchangeTool)
                 .call()
                 .content();
 
