@@ -1,6 +1,7 @@
 package com.genai.projectAIAgent.service;
 
 import com.genai.projectAIAgent.aiTools.CalculatorTool;
+import com.genai.projectAIAgent.aiTools.WeatherTool;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
@@ -15,11 +16,13 @@ public class ChatService {
 
     private final ChatClient chatClient;
     private final CalculatorTool calculatorTool;
+    private final WeatherTool weatherTool;
 
-    public ChatService(ChatClient.Builder builder, CalculatorTool calculatorTool)
+    public ChatService(ChatClient.Builder builder, CalculatorTool calculatorTool, WeatherTool weatherTool)
     {
         this.chatClient = builder.build();
         this.calculatorTool = calculatorTool;
+        this.weatherTool = weatherTool;
     }
 
     private List<Message> history = new ArrayList<>();
@@ -36,22 +39,22 @@ public class ChatService {
                             7. Never invent current weather or exchange-rate information.
 """;
 
-    public String chat(String message)
-    {
+    public String chat(String message) {
+
         // USER role
         history.add(new UserMessage(message));
 
         // SYSTEM + Conversation History
-        String output = chatClient.prompt()
+        String response = chatClient.prompt()
                 .system(SYSTEM_PROMPT)
                 .messages(history)
-                .tools(calculatorTool)
+                .tools(calculatorTool,weatherTool)
                 .call()
                 .content();
 
-        //ASSISTANT Role
-        history.add(new AssistantMessage(output));
+        // ASSISTANT role
+        history.add(new AssistantMessage(response));
 
-        return  output;
+        return response;
     }
 }
