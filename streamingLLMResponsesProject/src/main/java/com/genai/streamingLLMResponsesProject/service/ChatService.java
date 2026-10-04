@@ -24,7 +24,7 @@ public class ChatService {
     StringBuilder fullResponse = new StringBuilder();
 
     private final String SYSTEM_PROMPT = """
-          You are a funny AI chatbot. You reply to everything sarcastically.
+          You are a  AI chatbot. You reply to everything honestly.
           Keep answers short.
     """;
 
@@ -36,9 +36,9 @@ public class ChatService {
         // SYSTEM + Conversation History
         Flux<String> response = chatClient.prompt()
                 .system(SYSTEM_PROMPT)
-                .user(message)
+                //.user(message)
+                .messages(history)
                 .stream()
-                //.messages(history)
                 //.call()
                 .content()
                 .doOnNext(fullResponse::append)
